@@ -3,13 +3,9 @@ package com.storminteacup.engine.utils;
 import org.lwjgl.BufferUtils;
 
 
-import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
-import java.nio.channels.Channels;
-import java.nio.channels.FileChannel;
-import java.nio.channels.ReadableByteChannel;
 
 /**
  * Created by Storminteacup on 03-Dec-15.
@@ -29,4 +25,19 @@ public class Buffers {
 		return buffer;
 	}
 
+	public static int bytesToInt(byte[] bytes) {
+		return ByteBuffer.allocate(4).put(bytes).getInt();
+	}
+
+	public static byte[] intToBytes(int value) {
+		return ByteBuffer.allocate(4).putInt(value).array();
+	}
+
+	public static float bytesToFloat(byte[] bytes) {
+		return ByteBuffer.allocate(4).put(bytes).getFloat();
+	}
+
+	public static byte [] floatToBytes (float value) {
+		return ByteBuffer.allocate(4).putFloat(value).array();
+	}
 }

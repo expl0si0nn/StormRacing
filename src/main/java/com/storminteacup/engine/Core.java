@@ -6,9 +6,11 @@ import com.storminteacup.engine.input.Input;
 import com.storminteacup.engine.models.Mesh;
 import com.storminteacup.engine.models.Model;
 
+import com.storminteacup.engine.network.NetworkManager;
 import com.storminteacup.engine.renderEngine.Renderer;
 import com.storminteacup.engine.states.GameStateMachine;
 import com.storminteacup.engine.utils.Loader;
+import com.storminteacup.engine.utils.Timer;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
 
@@ -32,6 +34,8 @@ public class Core {
 	private GLFWCursorPosCallback mouseCallback;
 	private GLFWErrorCallback errorCallback;
 
+	private Timer timer;
+	private NetworkManager networkManager;
 	private Renderer renderer;
 	private Camera spectatorCamera;
 	private Camera playerCamera;
@@ -41,7 +45,7 @@ public class Core {
 	private int screenWidth = 1680;
 	private int screenHeight = 1050;
 
-	private	int playerId = 0;
+	private int playerId = 0;
 
 	private float sensetivity = 0.04f;
 	private float lastX = (float) screenWidth / 2.0f;
@@ -85,6 +89,8 @@ public class Core {
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 		GameStateMachine.init();
+		timer = new Timer();
+		networkManager = new NetworkManager();
 		renderer = new Renderer(screenWidth, screenHeight);
 		spectatorCamera = new Camera(new Vector3f(-5.0f, 5.0f, 7.0f), new Vector3f(0.0f, 0.0f, -1.0f));
 		playerCamera = new Camera(new Vector3f(-5.0f, 5.0f, 7.0f), new Vector3f(0.0f, 0.0f, -1.0f));
@@ -100,9 +106,9 @@ public class Core {
 					Input.keys[key] = true;
 				else if (action == GLFW_RELEASE)
 					Input.keys[key] = false;
-				if(Input.keys[GLFW_KEY_F1])
+				if (Input.keys[GLFW_KEY_F1])
 					spectator = !spectator;
-				if(Input.keys[GLFW_KEY_UP])
+				if (Input.keys[GLFW_KEY_UP])
 					playerId = (playerId + 1) % 3;
 			}
 		});
@@ -111,39 +117,43 @@ public class Core {
 		glfwSetCursorPosCallback(window, mouseCallback = new GLFWCursorPosCallback() {
 			@Override
 			public void invoke(long window, double xpos, double ypos) {
-				if(firstMouse) {
+				if (spectator) {
+					if (firstMouse) {
+						lastX = (float) xpos;
+						lastY = (float) ypos;
+						firstMouse = false;
+						return;
+					}
+					float xoffset = (float) xpos - lastX;
+					float yoffset = (float) ypos - lastY;
+
 					lastX = (float) xpos;
 					lastY = (float) ypos;
-					firstMouse = false;
-					return;
+
+					xoffset *= sensetivity;
+					yoffset *= sensetivity;
+
+					if (!invertMouse)
+						yoffset = 0.0f - yoffset;
+
+					spectatorCamera.moveDirection(xoffset, yoffset);
 				}
-				float xoffset = (float) xpos - lastX;
-				float yoffset = (float) ypos - lastY;
-
-				lastX = (float) xpos;
-				lastY = (float) ypos;
-
-				xoffset *= sensetivity;
-				yoffset *= sensetivity;
-
-				if(!invertMouse)
-					yoffset = 0.0f - yoffset;
-
-				spectatorCamera.moveDirection(xoffset, yoffset);
 			}
-		} );
+		});
 
 	}
 
 	private void moveCamera() {
-		if(Input.keys[GLFW_KEY_W])
-			spectatorCamera.moveCamera(Camera.FORWARD_DIRECTION, 1.0f);
-		if(Input.keys[GLFW_KEY_S])
-			spectatorCamera.moveCamera(Camera.BACKWARD_DIRECTION, 1.0f);
-		if(Input.keys[GLFW_KEY_A])
-			spectatorCamera.moveCamera(Camera.LEFT_DIRECTION, 1.0f);
-		if(Input.keys[GLFW_KEY_D])
-			spectatorCamera.moveCamera(Camera.RIGHT_DIRECTION, 1.0f);
+		if (spectator) {
+			if (Input.keys[GLFW_KEY_W])
+				spectatorCamera.moveCamera(Camera.FORWARD_DIRECTION, 1.0f);
+			if (Input.keys[GLFW_KEY_S])
+				spectatorCamera.moveCamera(Camera.BACKWARD_DIRECTION, 1.0f);
+			if (Input.keys[GLFW_KEY_A])
+				spectatorCamera.moveCamera(Camera.LEFT_DIRECTION, 1.0f);
+			if (Input.keys[GLFW_KEY_D])
+				spectatorCamera.moveCamera(Camera.RIGHT_DIRECTION, 1.0f);
+		}
 	}
 
 
@@ -194,36 +204,33 @@ public class Core {
 		mesh2.create();
 
 		//Models
-		Model[] car = new Model[3];
 
-		car[0] = new Model(carMesh1);
-		car[0].setPosition(new Vector3f(0.0f, 1.0f, 0.0f));
-		car[0].setDirection(new Vector3f(-1.0f, 0.0f, 0.0f));
+		Model[] cars = new Model[3];
 
-		car[1] = new Model(carMesh2);
-		car[1].setPosition(new Vector3f(20.0f, 1.0f, 0.0f));
-		car[1].setDirection(new Vector3f(-1.0f, 0.0f, 0.0f));
+		cars[0] = new Model(carMesh1.id);
+		cars[0].setPosition(new Vector3f(0.0f, 1.0f, 0.0f));
+		cars[0].setDirection(new Vector3f(-1.0f, 0.0f, 0.0f));
 
-		car[2] = new Model(carMesh3);
-		car[2].setPosition(new Vector3f(40.0f, 1.0f, 0.0f));
-		car[2].setDirection(new Vector3f(-1.0f, 0.0f, 0.0f));
+		cars[1] = new Model(carMesh2.id);
+		cars[1].setPosition(new Vector3f(20.0f, 1.0f, 0.0f));
+		cars[1].setDirection(new Vector3f(-1.0f, 0.0f, 0.0f));
 
-		Model track = new Model(mesh2);
+		cars[2] = new Model(carMesh3.id);
+		cars[2].setPosition(new Vector3f(40.0f, 1.0f, 0.0f));
+		cars[2].setDirection(new Vector3f(-1.0f, 0.0f, 0.0f));
+
+
+		GameStateMachine.addModel(cars[0]);
+		GameStateMachine.addModel(cars[1]);
+		GameStateMachine.addModel(cars[2]);
+
+
+		Model track = new Model(mesh2.id);
 		track.setScaling(1.0f);
-
-		GameStateMachine.addModel(track);
-		GameStateMachine.addModel(car[0]);
-		GameStateMachine.addModel(car[1]);
-		GameStateMachine.addModel(car[2]);
 
 		//Player
 		Vector3f playerDir = new Vector3f();
 
-
-		//Temporary moving
-		float modelRotate = 0.0f;
-		float fwspeed = 0.0f;
-		float angspeed = 0.0f;
 
 		glViewport(0, 0, screenWidth, screenHeight);
 
@@ -234,74 +241,63 @@ public class Core {
 
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-		while(glfwWindowShouldClose(window) != GL_TRUE) {
+		float delta;
+		float accumulator = 0.0f;
+		float interval = 1.0f / 60.0f;
+		float alpha;
+
+		Camera activeCamera = spectator ? spectatorCamera : playerCamera;
+
+		while (glfwWindowShouldClose(window) != GL_TRUE) {
+
+			delta = timer.getDelta();
+			accumulator += delta;
 
 			glfwPollEvents();
 
-			moveCamera();
+			while (accumulator >= interval) {
+				//Logic
 
-			//Temporary moving
-			car[0] = new Model(GameStateMachine.entities.get(1));
-			car[1] = new Model(GameStateMachine.entities.get(2));
-			car[2] = new Model(GameStateMachine.entities.get(3));
+				networkManager.upload();
 
-			fwspeed = 0.0f;
-			angspeed = 0.0f;
+				moveCamera();
 
-			if(!spectator) {
-				if(Input.keys[GLFW_KEY_W])
-					fwspeed = 0.4f;
-				if(Input.keys[GLFW_KEY_S])
-					fwspeed = -0.4f;
-				if(Input.keys[GLFW_KEY_D])
-					angspeed = -1.5f;
-				if(Input.keys[GLFW_KEY_A])
-					angspeed = 1.5f;
+				Model car = GameStateMachine.entities.get(playerId);
+
+				Vector3f modelPos = new Vector3f(car.getPosition());
+				Vector3f modelDir = new Vector3f(car.getDirection());
+
+				playerDir = new Vector3f(modelDir.x, modelDir.y - 0.2f, modelDir.z);
+
+				playerCamera.setCameraPos(new Vector3f(modelPos.x, modelPos.y + 4.5f, modelPos.z));
+				playerCamera.setCameraDirection(playerDir);
+				playerCamera.moveCamera(Camera.BACKWARD_DIRECTION, 8f);
+
+				if (!spectator) {
+					spectatorCamera.setCameraPos(new Vector3f(playerCamera.getCameraPos()));
+					spectatorCamera.setCameraDirection(new Vector3f(playerCamera.getCameraDirection()));
+				}
+
+				activeCamera = spectator ? spectatorCamera : playerCamera;
+
+				timer.updateUPS();
+				accumulator -= interval;
 			}
 
-			modelRotate += angspeed;
-
-
-			Vector3f modelPos = new Vector3f(car[playerId].getPosition());
-			Vector3f modelDir = new Vector3f(car[playerId].getDirection());
-
-			Vector3f pr = car[playerId].getRotation();
-			car[playerId].setRotation(new Vector3f(0.0f, pr.y + (float) Math.toRadians(angspeed), 0.0f));
-
-			Vector4f newModelDir = new Vector4f(modelDir, 1.0f)
-					.mul(new Matrix4f()
-							.identity()
-							.rotateY((float) Math.toRadians(angspeed)));
-			modelDir = new Vector3f(newModelDir.x, newModelDir.y, newModelDir.z);
-			car[playerId].setDirection(modelDir);
-
-			modelPos.add(new Vector3f(modelDir).mul(fwspeed));
-			car[playerId].setPosition(modelPos);
-
-			GameStateMachine.entities.get(1 + playerId).setPosition(car[playerId].getPosition());
-			GameStateMachine.entities.get(1 + playerId).setRotation(car[playerId].getRotation());
-			GameStateMachine.entities.get(1 + playerId).setDirection(car[playerId].getDirection());
-
-			playerDir = new Vector3f(modelDir.x, modelDir.y - 0.2f, modelDir.z);
-
-			playerCamera.setCameraPos(new Vector3f(modelPos.x, modelPos.y + 4.5f, modelPos.z));
-			playerCamera.setCameraDirection(playerDir);
-			playerCamera.moveCamera(Camera.BACKWARD_DIRECTION, 8f);
-
-			if(!spectator) {
-				spectatorCamera.setCameraPos(new Vector3f(playerCamera.getCameraPos()));
-				spectatorCamera.setCameraDirection(new Vector3f(playerCamera.getCameraDirection()));
-			}
-
-			Camera activeCamera = spectator? spectatorCamera : playerCamera;
+			alpha = accumulator / interval;
 
 			//Render
 
-			Model[] toRender = new Model[GameStateMachine.entities.size()];
-
+			Model[] toRender = new Model[GameStateMachine.entities.size() + 1];
 			GameStateMachine.entities.toArray(toRender);
+			toRender[toRender.length - 1] = track;
 
 			renderer.render(toRender, activeCamera.getMatrix(), activeCamera.getCameraPos(), shaderProgram);
+			timer.updateFPS();
+
+			timer.update();
+
+			System.out.println("fps: " + timer.getFPS() + " ups: " + timer.getUPS());
 
 			glfwSwapBuffers(window);
 		}
