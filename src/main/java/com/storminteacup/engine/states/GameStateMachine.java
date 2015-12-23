@@ -21,6 +21,11 @@ public class GameStateMachine {
 		entities.add(new Model(model));
 	}
 
-	public static void addPlayer(Player player) { players.add(player); }
-
+	public static Player getPlayer(int id) {
+		for(Player player : players) {
+			if(player.getId() == id)
+				return player;
+		}
+		return null;
+	}
 }

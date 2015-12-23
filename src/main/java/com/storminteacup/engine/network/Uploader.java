@@ -1,7 +1,6 @@
 package com.storminteacup.engine.network;
 
 import com.storminteacup.engine.input.Input;
-import com.storminteacup.engine.utils.Buffers;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -14,6 +13,7 @@ public class Uploader implements Runnable {
 	Thread thread;
 
 	private boolean send = false;
+	private boolean specatator = false;
 
 	public void start() {
 		thread = new Thread(this, "network.uploader");
@@ -22,39 +22,50 @@ public class Uploader implements Runnable {
 
 	@Override
 	public void run() {
+		System.out.println("Yay!");
 		while(true) {
-			if(send) {
-				int packageStart = 0xFFFFA000;
-				int packageEnd = 0xFFFFA100;
-				int blockStart = 0xFFFFB000;
-				int blockEnd = 0xFFFFB100;
+			System.out.println("Yay!!");
+			if(send && !specatator) {
+				System.out.println("Yay!!!");
+				int packageStart = 0x0000C000;
+				int packageEnd   = 0x0000C100;
+				int blockStart   = 0x0000F000;
+				int blockEnd     = 0x0000F100;
 
-				ByteBuffer data = ByteBuffer.allocate(56);
+				ByteBuffer data = ByteBuffer.allocate(1024);
 				int pos = 0;
-				data.putInt(pos++, packageStart);
+				data.putInt(pos, packageStart);
+				pos += 4;
 
-				data.putInt(pos++, blockStart);
-				data.putInt(pos++, Input.isKeyDown(Input.moveForvard) ? 1 : 0);
-				data.putInt(pos++, blockEnd);
+				if(Input.isKeyDown(Input.moveForvard)) {
+					int ttwtw = 521525;
+				}
+				data.putInt(pos, blockStart);
+				pos += 4;
+				int t = Input.isKeyDown(Input.moveForvard) ? 1 : 0;
+				data.putInt(pos, t);
+				pos += 4;
 
-				data.putInt(pos++, blockStart);
-				data.putInt(pos++, Input.isKeyDown(Input.moveBackward) ? 1 : 0);
-				data.putInt(pos++, blockEnd);
+				int t1 = Input.isKeyDown(Input.moveBackward) ? 1 : 0;
+				data.putInt(pos, t1);
+				pos += 4;
 
-				data.putInt(pos++, blockStart);
-				data.putInt(pos++, Input.isKeyDown(Input.moveLeft) ? 1 : 0);
-				data.putInt(pos++, blockEnd);
+				int t2 = Input.isKeyDown(Input.moveLeft) ? 1 : 0;
+				data.putInt(pos, t2);
+				pos += 4;
 
-				data.putInt(pos++, blockStart);
-				data.putInt(pos++, Input.isKeyDown(Input.moveRight) ? 1 : 0);
-				data.putInt(pos++, blockEnd);
+				int t3 = Input.isKeyDown(Input.moveRight) ? 1 : 0;
+				data.putInt(pos, t3);
+				pos += 4;
+				data.putInt(pos, blockEnd);
+				pos += 4;
 
 				data.putInt(pos, packageEnd);
 
 				byte[] packed = data.array();
 
 				try {
-					Connection.sendData(packed);
+					GameConnection.sendData(packed);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -65,5 +76,9 @@ public class Uploader implements Runnable {
 
 	public void setSend(boolean send) {
 		this.send = send;
+	}
+
+	public void setSpecatator() {
+		this.specatator = !specatator;
 	}
 }

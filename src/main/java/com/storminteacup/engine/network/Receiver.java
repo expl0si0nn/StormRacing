@@ -3,13 +3,9 @@ package com.storminteacup.engine.network;
 import com.storminteacup.engine.models.Model;
 import com.storminteacup.engine.states.GameStateMachine;
 import com.storminteacup.engine.states.Player;
-import com.storminteacup.engine.utils.Buffers;
 import org.joml.Vector3f;
 
-import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 
@@ -27,47 +23,63 @@ public class Receiver implements Runnable {
 
 	@Override
 	public void run() {
-		int packageStart = 0xFFFFA000;
-		int packageEnd = 0xFFFFA100;
-		int blockStart = 0xFFFFB000;
-		int blockEnd = 0xFFFFB100;
+		int packageStart = 0x0000C000;
+		int packageEnd   = 0x0000C100;
+		int blockStart   = 0x0000F000;
+		int blockEnd     = 0x0000F100;
 		while(true) {
 			ArrayList<Model> entities = new ArrayList<Model>();
 			ArrayList<Player> players = new ArrayList<Player>();
 			byte[] received;
 			try {
-				received = Connection.receiveData();
+				received = GameConnection.receiveData();
+				ByteBuffer buffer = ByteBuffer.wrap(received);
 				int pos = 0;
-				int currentFlag = Buffers.bytesToInt(new byte[]{received[pos++], received[pos++], received[pos++], received[pos++]});
+				int currentFlag = buffer.getInt(pos);
+				pos += 4;
 				if(currentFlag != packageStart)
-					throw new RuntimeException("Package broken");
+					continue;
+				currentFlag = buffer.getInt(pos);
+				pos += 4;
 				while(currentFlag != packageEnd) {
-					int flag = Buffers.bytesToInt(new byte[]{received[pos++], received[pos++], received[pos++], received[pos++]});
-					if(flag != blockStart)
+					if(currentFlag != blockStart)
 						throw new RuntimeException("Package broken");
 
-					int playerId = Buffers.bytesToInt(new byte[]{received[pos++], received[pos++], received[pos++], received[pos++]});
-					int meshId = Buffers.bytesToInt(new byte[]{received[pos++], received[pos++], received[pos++], received[pos++]});
+					int playerId = buffer.getInt(pos);
+					pos += 4;
+					int meshId = buffer.getInt(pos);
+					pos += 4;
 					Vector3f position = new Vector3f();
-					position.x = Buffers.bytesToFloat(new byte[]{received[pos++], received[pos++], received[pos++], received[pos++]});
-					position.y = Buffers.bytesToFloat(new byte[]{received[pos++], received[pos++], received[pos++], received[pos++]});
-					position.z = Buffers.bytesToFloat(new byte[]{received[pos++], received[pos++], received[pos++], received[pos++]});
+					position.x = buffer.getFloat(pos);
+					pos += 4;
+					position.y = buffer.getFloat(pos);
+					pos += 4;
+					position.z = buffer.getFloat(pos);
+					pos += 4;
 
 					Vector3f rotation = new Vector3f();
-					rotation.x = Buffers.bytesToFloat(new byte[]{received[pos++], received[pos++], received[pos++], received[pos++]});
-					rotation.y = Buffers.bytesToFloat(new byte[]{received[pos++], received[pos++], received[pos++], received[pos++]});
-					rotation.z = Buffers.bytesToFloat(new byte[]{received[pos++], received[pos++], received[pos++], received[pos++]});
+					rotation.x = buffer.getFloat(pos);
+					pos += 4;
+					rotation.y = buffer.getFloat(pos);
+					pos += 4;
+					rotation.z = buffer.getFloat(pos);
+					pos += 4;
 
 					Vector3f direction = new Vector3f();
-					direction.x = Buffers.bytesToFloat(new byte[]{received[pos++], received[pos++], received[pos++], received[pos++]});
-					direction.y = Buffers.bytesToFloat(new byte[]{received[pos++], received[pos++], received[pos++], received[pos++]});
-					direction.z = Buffers.bytesToFloat(new byte[]{received[pos++], received[pos++], received[pos++], received[pos++]});
+					direction.x = buffer.getFloat(pos);
+					pos += 4;
+					direction.y = buffer.getFloat(pos);
+					pos += 4;
+					direction.z =buffer.getFloat(pos);
+					pos += 4;
 
-					flag = Buffers.bytesToInt(new byte[]{received[pos++], received[pos++], received[pos++], received[pos++]});
-					if(flag != blockEnd)
+					currentFlag = buffer.getInt(pos);
+					pos += 4;
+					if(currentFlag != blockEnd)
 						throw new RuntimeException("Package broken");
 
-					currentFlag = Buffers.bytesToInt(new byte[]{received[pos++], received[pos++], received[pos++], received[pos++]});
+					currentFlag = buffer.getInt(pos);
+					pos += 4;
 
 					Model model = new Model(meshId);
 					model.setPosition(position);
