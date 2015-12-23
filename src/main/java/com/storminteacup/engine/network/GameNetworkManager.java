@@ -39,4 +39,34 @@ public class GameNetworkManager {
 	public void setSpectator() {
 		uploader.setSpecatator();
 	}
+
+	public int joinGame(int carId) {
+		int packageStart = 0x0000A000;
+		int packageEnd = 0x0000A100;
+
+		try {
+			ByteBuffer data = ByteBuffer.allocate(1024);
+			data.putInt(packageStart);
+			data.putInt(4, carId);
+			data.putInt(8, packageEnd);
+			GameConnection.sendData(data.array());
+
+			int trackId = 0;
+
+			while (true) {
+				byte[] rec = GameConnection.receiveData();
+				ByteBuffer received = ByteBuffer.wrap(rec);
+				int pos = 0;
+				int currentFlag = received.getInt(pos);
+				pos += 4;
+				if(currentFlag != packageStart)
+					continue;
+				trackId = received.getInt(pos);
+				return trackId;
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return 0;
+	}
 }

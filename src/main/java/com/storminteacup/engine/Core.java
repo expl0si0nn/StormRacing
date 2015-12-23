@@ -38,7 +38,8 @@ public class Core {
 		init();
 
 		new Game(serverAddress, 7777, window, screenWidth, screenHeight).start();
-		//new MainMenu(window, screenWidth, screenHeight).start();
+		//new MainMenu(serverAddress, 7777, window, screenWidth, screenHeight).start();
+
 
 		// TODO: add memory cleanup
 		glfwTerminate();

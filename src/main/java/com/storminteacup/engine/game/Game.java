@@ -22,6 +22,8 @@ import static org.lwjgl.opengl.GL20.*;
 
 import org.joml.*;
 
+import java.util.Random;
+
 
 /**
  * Created by Storminteacup on 03-Dec-15.
@@ -48,6 +50,7 @@ public class Game {
 	private String host;
 	private int port;
 	private int playerId = 0;
+	private int trackId;
 
 	private float sensetivity = 0.04f;
 	private float lastX = (float) screenWidth / 2.0f;
@@ -95,6 +98,8 @@ public class Game {
 		GameStateMachine.init();
 		timer = new Timer();
 		networkManager = new GameNetworkManager(host, port);
+		Random rand = new Random();
+		trackId = networkManager.joinGame(rand.nextInt(3));
 		gameRenderer = new GameRenderer(screenWidth, screenHeight);
 		spectatorCamera = new Camera(new Vector3f(-5.0f, 5.0f, 7.0f), new Vector3f(0.0f, 0.0f, -1.0f));
 		playerCamera = new Camera(new Vector3f(-5.0f, 5.0f, 7.0f), new Vector3f(0.0f, 0.0f, -1.0f));
@@ -205,7 +210,10 @@ public class Game {
 		*/
 
 
-		Mesh mesh2 = Loader.loadObj("src/main/resources/models/track/Estoril.obj");
+		Mesh mesh2;
+		if(trackId == 0)
+			mesh2 = Loader.loadObj("src/main/resources/models/track/Estoril.obj");
+		else mesh2 = Loader.loadObj("src/main/resources/models/track/NazionaleMonza.obj");
 		mesh2.create();
 
 		Model track = new Model(mesh2.id);

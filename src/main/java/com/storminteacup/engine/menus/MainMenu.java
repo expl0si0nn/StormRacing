@@ -2,17 +2,19 @@ package com.storminteacup.engine.menus;
 
 import com.storminteacup.engine.game.Game;
 import com.storminteacup.engine.graphics.*;
+import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFWKeyCallback;
 
 
-import java.awt.Font;
+import java.nio.ByteBuffer;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL20.*;
-import org.lwjgl.util.glu.*;
-import org.lwjgl.Sys;
-import org.lwjgl.util.glu.GLU;
+
+import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL13.*;
+import static org.lwjgl.opengl.GL20.*;
 
 /**
  * Created by Storminteacup on 22-Dec-15.
@@ -27,20 +29,21 @@ public class MainMenu {
 	private int screenWidth = 800;
 	private int screenHeight = 600;
 
-	private final String[] mainMenuOptions = {"Create game", "Join game", "Exit"};
-	private final String[] createGameMenuOptions = {"Track1", "Track2", "Track3"};
-	private final String[] joinGameMenuOptions = {"25.111.255.155:7777", "25.111.255.155:7777", "25.111.255.155:7777"};
+	private final String[] mainMenuOptions = {"Join game", "Exit"};
 	private final String[] carPickMenuOptions = {"Car1", "Car2", "Car3"};
 
 	private Menu mainMenu;
-	private Menu createGameMenu;
-	private Menu joinGameMenu;
 	private Menu carPickMenu;
+
+	private String host;
+	private int port;
 
 	Menu current;
 	private int menuPos = 0;
 
-	public MainMenu(long window, int screenWidth, int screenHeight) {
+	public MainMenu(String host, int port, long window, int screenWidth, int screenHeight) {
+		this.host = host;
+		this.port = port;
 		this.window = window;
 		this.screenWidth = screenWidth;
 		this.screenHeight = screenHeight;
@@ -78,9 +81,9 @@ public class MainMenu {
 
 	private void init() {
 		mainMenu = new Menu("Main", mainMenuOptions, null);
-		createGameMenu = new Menu("CreateGame", createGameMenuOptions, mainMenu);
-		joinGameMenu = new Menu("JoinGame", joinGameMenuOptions, mainMenu);
-		carPickMenu = new Menu("CarPick", carPickMenuOptions, joinGameMenu);
+		mainMenu.create();
+		carPickMenu = new Menu("CarPick", carPickMenuOptions, mainMenu);
+		carPickMenu.create();
 		current = mainMenu;
 	}
 
@@ -88,29 +91,17 @@ public class MainMenu {
 		if(current.getName().equals("Main")) {
 			switch (menuPos) {
 				case 0 :
-					current = createGameMenu;
+					current = carPickMenu;
 					menuPos = 0;
 					break;
-				case 1 :
-					current = joinGameMenu;
-					menuPos = 0;
-					break;
-				case 2 :
+				case 1:
 					glfwSetWindowShouldClose(window, GLFW_TRUE);
 					break;
 			}
 		}
-		else if(current.getName().equals("CreateGame")) {
-			/*
-			String[] splitted = current.options[menuPos].split(":");
+		else if(current.getName().equals("CarPick")) {
 			// TODO: send server message
-			new Game(splitted[0], Integer.parseInt(splitted[1]), window, screenWidth, screenHeight).start();
-			*/
-		}
-		else if(current.getName().equals("JoinGame")) {
-			String[] splitted = current.options[menuPos].split(":");
-			// TODO: send server message
-			new Game(splitted[0], Integer.parseInt(splitted[1]), window, screenWidth, screenHeight).start();
+			new Game(host, port, window, screenWidth, screenHeight).start();
 			setCallbacks();
 		}
 	}
@@ -130,8 +121,9 @@ public class MainMenu {
 		vertexShader.destroy();
 		fragmentShader.destroy();
 
-		//fonts
 
+
+		Matrix4f projection = new Matrix4f().ortho(0.0f, 1.0f, 1.0f, 0.0f, 0.1f, 100.0f);
 
 		while (running) {
 
@@ -140,7 +132,14 @@ public class MainMenu {
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			glClearColor(0.38f, 0.72f, 1.0f, 1.0f);
 
+			current.bind();
+			glActiveTexture(GL_TEXTURE0);
+			current.tex.bind();
+			shaderProgram.setUniform("tex", 0);
 
+			glDrawArrays(GL_TRIANGLES, 0, 6);
+
+			current.unbind();
 
 			//System.out.println(current.getName() + " " + current.options[menuPos]);
 
