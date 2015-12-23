@@ -10,21 +10,22 @@ import java.util.ArrayList;
 public class GameStateMachine {
 
 	public static ArrayList<Model> entities;
+	public static ArrayList<Player> players;
 
 	public static void init() {
 		entities = new ArrayList<Model>();
+		players = new ArrayList<Player>();
 	}
 
 	public static void addModel(Model model) {
 		entities.add(new Model(model));
 	}
 
-	public static void removeModel(int id) {
-		for(int i = 0; i < entities.size(); i++) {
-			if(entities.get(i).id == id) {
-				entities.remove(i);
-				break;
-			}
+	public static Player getPlayer(int id) {
+		for(Player player : players) {
+			if(player.getId() == id)
+				return player;
 		}
+		return null;
 	}
 }

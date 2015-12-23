@@ -2,6 +2,8 @@ package com.storminteacup.engine.models;
 
 import org.joml.Vector3f;
 
+import java.util.ArrayList;
+
 /**
  * Created by Storminteacup on 03-Dec-15.
  */
@@ -11,25 +13,30 @@ public class Model {
 
 	public int id;
 
-	private Mesh mesh;
+	private static ArrayList<Model> models;
+
+	private int meshId;
 
 	private Vector3f direction;
 	private Vector3f position;
 	private Vector3f rotation;
 	private float scaling;
 
-	public Model(Mesh mesh) {
+	public Model(int meshId) {
+		if (models == null)
+			models = new ArrayList<Model>();
 		id = modelCount++;
-		this.mesh = mesh;
-		scaling = mesh.getScaling();
+		this.meshId = meshId;
+		scaling = Mesh.getMesh(meshId).getScaling();
 		direction = new Vector3f();
 		position = new Vector3f();
 		rotation = new Vector3f();
+		models.add(this);
 	}
 
 	public Model(Model model) {
 		this.id = model.id;
-		this.mesh = model.mesh;
+		this.meshId = model.meshId;
 		this.direction = new Vector3f(model.getDirection());
 		this.position = new Vector3f(model.getPosition());
 		this.rotation = new Vector3f(model.getRotation());
@@ -45,7 +52,7 @@ public class Model {
 	}
 
 	public Mesh getMesh() {
-		return mesh;
+		return Mesh.getMesh(meshId);
 	}
 
 	public Vector3f getPosition() {
@@ -70,5 +77,9 @@ public class Model {
 
 	public float getScaling() {
 		return scaling;
+	}
+
+	public static Model getModel(int id) {
+		return models.get(id);
 	}
 }

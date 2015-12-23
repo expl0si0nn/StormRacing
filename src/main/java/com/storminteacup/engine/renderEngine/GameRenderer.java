@@ -17,7 +17,7 @@ import static org.lwjgl.opengl.GL20.*;
 /**
  * Created by Storminteacup on 20-Dec-15.
  */
-public class Renderer{
+public class GameRenderer {
 
 	private int screenWidth;
 	private int screenHeight;
@@ -31,7 +31,7 @@ public class Renderer{
 	private Vector3f viewPos;
 
 
-	public Renderer(int screenWidth, int screenHeight) {
+	public GameRenderer(int screenWidth, int screenHeight) {
 
 		this.screenWidth = screenWidth;
 		this.screenHeight = screenHeight;

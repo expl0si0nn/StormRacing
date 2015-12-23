@@ -1,4 +1,4 @@
-package com.storminteacup.engine;
+package com.storminteacup.engine.game;
 
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
